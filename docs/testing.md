@@ -12,6 +12,9 @@ flutter test --reporter expanded
 - network_test：真实本机 HTTP / WebSocket，加入、发牌、断线、换客户端恢复、连接替换竞态、踢人、伪造身份、坏消息、关闭房间。
 - controller_test：单房间限制、持久化身份恢复、主机冷启动、失效凭证清理。
 - ui_test：390×844、320×568、844×390 布局，首页提示、搜索入口和座位选择。
+- doudizhu_test：14 类牌型、非法牌型、叫抢与反抢、重新发牌、阵营、翻倍、春天与反春、20 个种子的完整自动出牌过程。
+- doudizhu_network_test：三条真实客户端连接完成叫抢、发牌、暂停、原身份恢复、出完整局、结算和下一局。
+- doudizhu_ui_test：667×320、844×390、1024×768，叫抢按钮、20 张手牌、点击划选、提示提交、暂停控制与结算后再开局。
 
 测试中只有系统存储与原生 DNS-SD 用替身；网络集成测试使用真实 Socket。
 
@@ -44,3 +47,5 @@ flutter test --reporter expanded
 ## UI 预览
 
 Windows 上可运行 `flutter test tool/render_preview_test.dart --no-pub` 生成 docs/preview-home.png 和 docs/preview-room.png。预览脚本只读取系统字体，不将系统字体复制进项目。
+
+横屏斗地主的六种状态由 `flutter test tool/render_doudizhu_preview_test.dart --no-pub` 生成到 docs/ddz-*.png。

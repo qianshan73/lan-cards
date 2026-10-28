@@ -105,7 +105,7 @@ class RoundRobinRules implements GameRules {
   }
 }
 
-class TestGameState implements GameState {
+class TestGameState extends GameState {
   TestGameState({
     required List<String> participants,
     required Map<String, List<int>> hands,

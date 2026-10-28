@@ -17,3 +17,6 @@ ios/Flutter/flutter_export_environment.sh
 windows/flutter/ephemeral/
 .runtime/
 dist/*.apk
+.env
+.env.*
+!.env.example

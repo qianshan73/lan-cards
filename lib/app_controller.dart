@@ -20,7 +20,8 @@ class AppController extends ChangeNotifier {
     RoomClient? client,
   }) : store = store ?? const LocalStore(),
        discovery = discovery ?? DiscoveryService(),
-       client = client ?? RoomClient() {
+       client =
+           client ?? RoomClient(supportedGames: gameRegistry.keys.toSet()) {
     this.discovery.addListener(_changed);
     _events = this.client.events.listen(_onEvent);
   }
@@ -243,7 +244,8 @@ class AppController extends ChangeNotifier {
         if (generation != _session || _disposed) return;
         if (error.code == 'seat_revoked' ||
             error.code == 'room_gone' ||
-            error.code == 'protocol') {
+            error.code == 'protocol' ||
+            error.code == 'unsupported_game') {
           await forgetRecovery();
           message = error.message;
           _changed();

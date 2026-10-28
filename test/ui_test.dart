@@ -66,13 +66,21 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('create dialog offers two to six seats', (tester) async {
+  testWidgets('create dialog defaults to three-player Dou Dizhu', (
+    tester,
+  ) async {
     final app = AppController(store: MemoryStore(), discovery: FakeDiscovery());
     await tester.pumpWidget(LanCardsApp(controller: app, showIntro: false));
     await tester.pumpAndSettle();
     await tester.tap(find.text('创建房间'));
     await tester.pumpAndSettle();
     expect(find.text('摆好一张牌桌'), findsOneWidget);
+    expect(find.text('经典斗地主 · 三人'), findsOneWidget);
+    expect(find.textContaining('固定三人'), findsOneWidget);
+    await tester.tap(find.text('经典斗地主 · 三人'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('轮流出牌 · 框架测试').last);
+    await tester.pumpAndSettle();
     expect(find.text('6 个座位'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

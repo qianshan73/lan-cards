@@ -20,6 +20,7 @@ class Member {
   final int seat;
   bool online;
   bool ready = false;
+  int points = 0;
   final Set<String> _seen = <String>{};
   final Queue<String> _order = Queue();
 
@@ -36,6 +37,7 @@ class Member {
     'online': online,
     'ready': ready,
     'isHost': id == hostId,
+    'points': points,
   };
 }
 
@@ -172,11 +174,12 @@ class Room {
           throw const RuleError('paused', '当前不能出牌，请等待对局恢复');
         }
         game = rules.apply(game!, actorId, payload);
-        if (game!.finished) {
-          lastResult = '${member(game!.winner!)?.name ?? '玩家'}率先出完手牌';
-          for (final m in members) {
-            m.ready = false;
-          }
+        if (game!.redealRequested) {
+          game = rules.create(game!.participants, random);
+          roundId = newId();
+          lastResult = '三人都不叫地主，已重新洗牌发牌。';
+        } else if (game!.finished) {
+          _finish();
         }
       case 'abort':
         _requireHost(actorId);
@@ -218,13 +221,21 @@ class Room {
         game!.participants.contains(playerId)) {
       game = rules.onDeparture(game!, playerId);
       if (game!.finished) {
-        lastResult = '有玩家离开，本局结束，剩余玩家获胜。';
-        for (final m in members) {
-          m.ready = false;
-        }
+        _finish(fallback: '有玩家离开，本局结束，剩余玩家获胜。');
       }
     }
     seats[m.seat] = null;
+  }
+
+  void _finish({String? fallback}) {
+    lastResult =
+        game!.resultMessage ??
+        fallback ??
+        '${member(game!.winner ?? '')?.name ?? '玩家'}率先出完手牌';
+    for (final m in members) {
+      m.ready = false;
+      m.points += game!.scores[m.id] ?? 0;
+    }
   }
 
   void _requireHost(String id) {

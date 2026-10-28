@@ -125,6 +125,13 @@ class RoomServer {
     if (message['roomId'] != room.id) {
       throw const RuleError('room_gone', '原房间已经结束');
     }
+    final supported = message['supportedGames'];
+    final legacyTestClient =
+        supported == null && room.rules.id == 'round_robin_v1';
+    if (!legacyTestClient &&
+        (supported is! List || !supported.contains(room.rules.id))) {
+      throw const RuleError('unsupported_game', '当前版本不支持这个房间的玩法，请更新软件');
+    }
     final String playerId;
     final String token;
     if (message['playerId'] != null) {

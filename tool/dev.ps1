@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('check', 'apk', 'run')]
+    [ValidateSet('check', 'apk', 'release', 'run')]
     [string]$Task = 'check'
 )
 
@@ -44,6 +44,7 @@ try {
             & $flutter test --no-pub --reporter expanded
         }
         'apk' { & $flutter build apk --debug --no-pub --target-platform android-arm64 }
+        'release' { & $flutter build apk --release --no-pub --target-platform android-arm64 }
         'run' { & $flutter run --no-pub }
     }
     if ($LASTEXITCODE -ne 0) { throw "$Task failed." }

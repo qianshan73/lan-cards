@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../app_controller.dart';
 import '../network/discovery_service.dart';
+import 'doudizhu_table.dart';
 
 const green = Color(0xFF176B50);
 const ink = Color(0xFF1D3029);
@@ -136,70 +137,203 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
           }
         }
       },
-      child: Scaffold(
-        appBar: AppBar(
-          leading: app.page == AppPage.home
-              ? null
-              : IconButton(
-                  tooltip: '返回',
-                  icon: const Icon(Icons.arrow_back_rounded),
-                  onPressed: () {
-                    if (app.page == AppPage.room) {
-                      unawaited(_leave());
-                    } else {
-                      app.home();
-                    }
-                  },
-                ),
-          title: Text(switch (app.page) {
-            AppPage.home => '一起出牌',
-            AppPage.search => '搜索房间',
-            AppPage.room => app.view?['name'] as String? ?? '朋友的房间',
-            AppPage.reconnect => '找回你的座位',
-          }, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
-          actions: [
-            if (app.page == AppPage.room)
-              IconButton(
-                tooltip: '离开房间',
-                onPressed: _leave,
-                icon: const Icon(Icons.logout_rounded),
-              ),
-          ],
-        ),
-        body: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 640),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (app.message != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: Notice(
-                          app.message!,
-                          icon: Icons.info_outline_rounded,
-                        ),
+      child: app.page == AppPage.room && app.view?['gameId'] == 'doudizhu_v1'
+          ? DoudizhuTable(
+              app: app,
+              onLeave: _leave,
+              onKick: _kickDdz,
+              onAbort: _abortDdz,
+            )
+          : Scaffold(
+              appBar: AppBar(
+                leading: app.page == AppPage.home
+                    ? null
+                    : IconButton(
+                        tooltip: '返回',
+                        icon: const Icon(Icons.arrow_back_rounded),
+                        onPressed: () {
+                          if (app.page == AppPage.room) {
+                            unawaited(_leave());
+                          } else {
+                            app.home();
+                          }
+                        },
                       ),
-                    switch (app.page) {
-                      AppPage.home => _home(),
-                      AppPage.search => _search(),
-                      AppPage.room => _room(),
-                      AppPage.reconnect => _reconnect(),
-                    },
-                  ],
+                title: Text(
+                  switch (app.page) {
+                    AppPage.home => '一起出牌',
+                    AppPage.search => '搜索房间',
+                    AppPage.room => app.view?['name'] as String? ?? '朋友的房间',
+                    AppPage.reconnect => '找回你的座位',
+                  },
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                actions: [
+                  if (app.page == AppPage.room)
+                    IconButton(
+                      tooltip: '离开房间',
+                      onPressed: _leave,
+                      icon: const Icon(Icons.logout_rounded),
+                    ),
+                ],
+              ),
+              body: SafeArea(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth:
+                          app.page == AppPage.home &&
+                              MediaQuery.sizeOf(context).width > 600
+                          ? 1000
+                          : 640,
+                    ),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (app.message != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: Notice(
+                                app.message!,
+                                icon: Icons.info_outline_rounded,
+                              ),
+                            ),
+                          switch (app.page) {
+                            AppPage.home => _home(),
+                            AppPage.search => _search(),
+                            AppPage.room => _room(),
+                            AppPage.reconnect => _reconnect(),
+                          },
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-        ),
-      ),
     ),
   );
 
-  Widget _home() => Column(
+  Widget _home() => MediaQuery.sizeOf(context).width > 600
+      ? _landscapeHome()
+      : _homePortrait();
+
+  Widget _landscapeHome() => Row(
+    crossAxisAlignment: CrossAxisAlignment.center,
+    children: [
+      Expanded(
+        child: Padding(
+          padding: const EdgeInsets.only(right: 26),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '朋友在身边，\n好牌在手边。',
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.w800,
+                  height: 1.3,
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                '三人经典斗地主 · 叫地主 / 抢地主\n同一个 Wi-Fi 或热点，一起开局。',
+                style: TextStyle(color: muted, fontSize: 13, height: 1.7),
+              ),
+              const SizedBox(height: 18),
+              InkWell(
+                onTap: _nickname,
+                child: Row(
+                  children: [
+                    const CircleAvatar(
+                      backgroundColor: Color(0xFFE5EDE1),
+                      child: Icon(Icons.person_outline, color: green),
+                    ),
+                    const SizedBox(width: 12),
+                    Flexible(
+                      child: Text(
+                        app.nickname,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Icon(Icons.edit_outlined, size: 17, color: muted),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (app.hasRecovery) ...[
+              FilledButton.icon(
+                onPressed: app.retryRecovery,
+                icon: const Icon(Icons.refresh),
+                label: const Text('返回原来的座位'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  if (await _confirm('离开原房间？', '离线时需要房主手动释放你的座位。')) {
+                    await app.leave();
+                  }
+                },
+                child: const Text('离开原房间 / 放弃恢复'),
+              ),
+            ],
+            ActionCard(
+              icon: Icons.add_rounded,
+              title: '创建房间',
+              subtitle: '摆好三人牌桌，等朋友来坐下',
+              primary: true,
+              onTap: app.busy || app.hasRecovery ? null : _create,
+            ),
+            const SizedBox(height: 12),
+            ActionCard(
+              icon: Icons.radar_rounded,
+              title: '搜索房间',
+              subtitle: '找到朋友的牌桌，点一下就加入',
+              onTap: app.busy || app.hasRecovery
+                  ? null
+                  : () => unawaited(app.search()),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              '局域网直连 · 无账号 · 无广告',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: muted, fontSize: 11),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+
+  Future<void> _kickDdz(String id, String name) async {
+    if (await _confirm(
+      '移出 $name？',
+      '座位将释放，旧凭证失效。地主已确定时，退出一方按弃权结算；叫抢阶段则作废本局。',
+    )) {
+      await app.command('kick', {'playerId': id});
+    }
+  }
+
+  Future<void> _abortDdz() async {
+    if (await _confirm('结束当前这一局？', '本局作废、不计分，所有座位保留，回到房间等待下一局。')) {
+      await app.command('abort');
+    }
+  }
+
+  Widget _homePortrait() => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       const SizedBox(height: 18),
@@ -314,7 +448,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       ),
       const SizedBox(height: 10),
       const Text(
-        '基础框架预览版 0.1.0 · 内置轮流出牌测试游戏',
+        '局域网斗地主 0.2.0 · 三人经典玩法',
         textAlign: TextAlign.center,
         style: TextStyle(color: muted, fontSize: 11),
       ),
@@ -783,6 +917,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   Future<void> _create() async {
     final text = TextEditingController(text: '${app.nickname}的房间');
     var capacity = 6;
+    var gameId = 'doudizhu_v1';
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -798,19 +933,39 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                   decoration: const InputDecoration(labelText: '房间名字'),
                 ),
                 const SizedBox(height: 16),
-                DropdownButtonFormField<int>(
-                  initialValue: capacity,
-                  decoration: const InputDecoration(labelText: '座位数量'),
-                  items: [
-                    for (var i = 2; i <= 6; i++)
-                      DropdownMenuItem(value: i, child: Text('$i 个座位')),
+                DropdownButtonFormField<String>(
+                  initialValue: gameId,
+                  decoration: const InputDecoration(labelText: '选择游戏'),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'doudizhu_v1',
+                      child: Text('经典斗地主 · 三人'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'round_robin_v1',
+                      child: Text('轮流出牌 · 框架测试'),
+                    ),
                   ],
                   onChanged: (value) =>
-                      setDialogState(() => capacity = value ?? 6),
+                      setDialogState(() => gameId = value ?? 'doudizhu_v1'),
                 ),
+                const SizedBox(height: 12),
+                if (gameId == 'round_robin_v1')
+                  DropdownButtonFormField<int>(
+                    initialValue: capacity,
+                    decoration: const InputDecoration(labelText: '座位数量'),
+                    items: [
+                      for (var i = 2; i <= 6; i++)
+                        DropdownMenuItem(value: i, child: Text('$i 个座位')),
+                    ],
+                    onChanged: (value) =>
+                        setDialogState(() => capacity = value ?? 6),
+                  ),
                 const SizedBox(height: 14),
-                const Text(
-                  '本版内置轮流出牌测试游戏，验证联机框架。',
+                Text(
+                  gameId == 'doudizhu_v1'
+                      ? '固定三人 · 54 张牌 · 叫抢地主 · 炸弹翻倍'
+                      : '每人 5 张牌，轮流出一张，先出完者获胜。',
                   style: TextStyle(fontSize: 12, color: muted),
                 ),
               ],
@@ -829,7 +984,13 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         ),
       ),
     );
-    if (result == true) await app.createRoom(text.text, capacity);
+    if (result == true) {
+      await app.createRoom(
+        text.text,
+        gameId == 'doudizhu_v1' ? 3 : capacity,
+        gameId: gameId,
+      );
+    }
   }
 
   Future<void> _manual() async {

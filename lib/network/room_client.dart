@@ -53,6 +53,8 @@ class ResumeTicket {
 }
 
 class RoomClient {
+  RoomClient({this.supportedGames = const {'round_robin_v1', 'doudizhu_v1'}});
+  final Set<String> supportedGames;
   final StreamController<Map<String, dynamic>> _events =
       StreamController.broadcast(sync: true);
   Stream<Map<String, dynamic>> get events => _events.stream;
@@ -164,6 +166,7 @@ class RoomClient {
         jsonEncode({
           'type': 'hello',
           'protocol': 1,
+          'supportedGames': supportedGames.toList(),
           'roomId': roomId,
           'name': name,
           if (resume != null) ...{

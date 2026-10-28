@@ -14,16 +14,20 @@
 新玩家握手：
 
 ```json
-{"type":"hello","protocol":1,"roomId":"ROOM_ID","name":"小红"}
+{"type":"hello","protocol":1,"roomId":"ROOM_ID","name":"小红","supportedGames":["doudizhu_v1","round_robin_v1"]}
 ```
 
 恢复已有身份：
 
 ```json
-{"type":"hello","protocol":1,"roomId":"ROOM_ID","playerId":"PLAYER_ID","token":"PRIVATE_RESUME_TOKEN"}
+{"type":"hello","protocol":1,"roomId":"ROOM_ID","playerId":"PLAYER_ID","token":"PRIVATE_RESUME_TOKEN","supportedGames":["doudizhu_v1","round_robin_v1"]}
 ```
 
 握手成功的 `welcome` 只发给本人，包含 roomId、playerId、token、view。身份凭据写入系统安全存储，不能写入发现数据。
+
+从 0.2.0 起，主机在分配座位之前检查 supportedGames。不包含该规则的客户端收到 unsupported_game，避免旧界面误入新游戏。缺少此字段的旧版客户端仅允许加入 round_robin_v1 测试房间。
+
+斗地主使用通用 play 命令：叫抢载荷为 `{"type":"bid","bid":"call|rob|pass","roundId":"ROUND_ID"}`，出牌载荷为 `{"type":"play","cards":[2,15],"roundId":"ROUND_ID"}`，不出载荷为 `{"type":"pass","roundId":"ROUND_ID"}`。对照 doudizhu.md 的具体规则。
 
 普通命令：
 

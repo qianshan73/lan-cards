@@ -13,6 +13,9 @@ abstract class GameState {
   String? get turnPlayer;
   bool get finished;
   String? get winner;
+  bool get redealRequested => false;
+  String? get resultMessage => null;
+  Map<String, int> get scores => const {};
 }
 
 /// Pure rules: no sockets, widgets, timers, or device APIs.

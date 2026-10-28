@@ -1,8 +1,10 @@
 import '../core/game_rules.dart';
 import 'round_robin.dart';
+import 'doudizhu/rules.dart';
 
 /// Register rules here; network and room code remain independent of game types.
 final Map<String, GameRules> gameRegistry = Map.unmodifiable({
+  'doudizhu_v1': DoudizhuRules(),
   'round_robin_v1': RoundRobinRules(),
 });
 
