@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../app_controller.dart';
 import '../games/doudizhu/patterns.dart';
 import 'ddz_cards.dart';
+import 'discovery_diagnostics.dart';
 
 const _gold = Color(0xFFFFD780);
 const _white = Color(0xFFFFFBEC);
@@ -291,6 +292,7 @@ class _DoudizhuTableState extends State<DoudizhuTable> {
         _pill('底分 1', const Color(0xFF2B6054)),
         const SizedBox(width: 8),
         _pill('×${game?['multiplier'] ?? 1}', const Color(0xFFB4742A)),
+        DiscoveryDiagnosticsButton(app: app, color: _gold),
         if (app.isHost)
           PopupMenuButton<String>(
             key: const ValueKey('ddz-host-menu'),

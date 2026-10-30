@@ -6,6 +6,7 @@ import 'package:lan_cards/games/round_robin.dart';
 import 'package:lan_cards/network/discovery_service.dart';
 import 'package:lan_cards/network/room_client.dart';
 import 'package:lan_cards/network/room_server.dart';
+import 'package:nsd/nsd.dart' as nsd;
 import 'helpers.dart';
 
 Future<void> eventually(bool Function() predicate) async {
@@ -19,6 +20,37 @@ Future<void> eventually(bool Function() predicate) async {
 }
 
 void main() {
+  test(
+    'publication failure leaves host playable and diagnostics survive commands',
+    () async {
+      final backend = FakeDiscoveryBackend()
+        ..registerError = nsd.NsdError(
+          nsd.ErrorCause.securityIssue,
+          'private-native-data',
+        );
+      final discovery = DiscoveryService(backend: backend);
+      final app = AppController(store: MemoryStore(), discovery: discovery);
+      addTearDown(app.shutdown);
+      await app.initialize();
+      await app.createRoom('诊断测试', 3, gameId: 'doudizhu_v1');
+      expect(app.connected, true);
+      expect(app.page, AppPage.room);
+      expect(discovery.diagnostics.publication, DiscoveryStage.failed);
+      final host = app.server;
+      await app.command('ready', {'ready': true});
+      expect(app.message, isNull);
+      expect(
+        discovery.diagnostics.publicationFailure,
+        DiscoveryFailure.permission,
+      );
+      backend.registerError = null;
+      await app.retryPublication();
+      expect(app.server, same(host));
+      expect(discovery.published, true);
+      expect(discovery.diagnostics.publicationFailure, isNull);
+    },
+  );
+
   test(
     'host creation is single-room; explicit leave releases all resources',
     () async {

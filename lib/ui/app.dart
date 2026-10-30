@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../app_controller.dart';
 import '../network/discovery_service.dart';
 import 'doudizhu_table.dart';
+import 'discovery_diagnostics.dart';
 
 const green = Color(0xFF176B50);
 const ink = Color(0xFF1D3029);
@@ -172,6 +173,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                   ),
                 ),
                 actions: [
+                  if (app.page != AppPage.home)
+                    DiscoveryDiagnosticsButton(app: app),
                   if (app.page == AppPage.room)
                     IconButton(
                       tooltip: '离开房间',
@@ -478,8 +481,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         ],
       ),
       if (app.discovery.searching) const LinearProgressIndicator(),
-      if (app.discovery.error != null)
-        Notice(app.discovery.error!, icon: Icons.wifi_off_rounded),
+      DiscoveryDiagnosticsPanel(app: app),
       if (app.foundRooms.isEmpty)
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 44),
