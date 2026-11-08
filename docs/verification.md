@@ -1,5 +1,11 @@
 # 本次验证记录
 
+## 21 点与 Android 发布包 — 2026-11-08（Asia/Shanghai）
+
+- `dart analyze --format machine lib test tool` 无诊断，格式检查通过。新增 8 项 21 点规则和房间用例，修改开房界面用例；按用户此前安排，未运行自动化或真机测试。
+- `tool/dev.ps1 release` 构建成功。`dist/lan-cards-0.3.0-arm64.apk` 包含 arm64 Flutter 引擎、AOT 以及两个游戏的标识；版本 0.3.0 / versionCode 3，最低 API 24、目标 API 36，21,070,597 字节。APK v2 签名与 0.2.0 诊断包的开发测试证书相同，SHA-256 见 `dist/` 的校验文件。
+- 构建检查不代表手机安装、对战、Wi-Fi / 热点、NSD / Bonjour 或 iOS 构建已通过。GitHub Actions 只保留手动触发，首次推送不自动运行延期的测试。
+
 ## 斗地主提示打磨 — 2026-11-08（Asia/Shanghai）
 
 - 实现本地候选循环、按点数去重、普通牌与炸弹 / 王炸排序、换轮重置及选牌反馈；复用原判型和比较，不改主机校验。

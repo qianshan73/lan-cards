@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../app_controller.dart';
+import '../games/blackjack.dart';
 import '../network/discovery_service.dart';
+import 'blackjack_board.dart';
 import 'doudizhu_table.dart';
 import 'discovery_diagnostics.dart';
 
@@ -245,7 +247,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
               ),
               const SizedBox(height: 10),
               const Text(
-                '三人经典斗地主 · 叫地主 / 抢地主\n同一个 Wi-Fi 或热点，一起开局。',
+                '经典斗地主 · 21 点\n同一个 Wi-Fi 或热点，一起开局。',
                 style: TextStyle(color: muted, fontSize: 13, height: 1.7),
               ),
               const SizedBox(height: 18),
@@ -296,7 +298,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
             ActionCard(
               icon: Icons.add_rounded,
               title: '创建房间',
-              subtitle: '摆好三人牌桌，等朋友来坐下',
+              subtitle: '选斗地主或 21 点，等朋友来坐下',
               primary: true,
               onTap: app.busy || app.hasRecovery ? null : _create,
             ),
@@ -451,7 +453,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       ),
       const SizedBox(height: 10),
       const Text(
-        '局域网斗地主 0.2.0 · 三人经典玩法',
+        '斗地主 · 21 点',
         textAlign: TextAlign.center,
         style: TextStyle(color: muted, fontSize: 11),
       ),
@@ -596,6 +598,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       orElse: () => <String, dynamic>{},
     );
     final game = view['game'] as Map<String, dynamic>?;
+    final blackjack = view['gameId'] == blackjackGameId;
     final active = game != null && game['finished'] != true;
     final waiting = game?['waitingNextRound'] == true && active;
     final hand = (game?['hand'] as List? ?? []).cast<int>();
@@ -619,6 +622,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
           spacing: 8,
           runSpacing: 8,
           children: [
+            if (blackjack) const BadgeLabel('21 点'),
             BadgeLabel(app.isHost ? '你是房主' : '朋友的牌桌'),
             BadgeLabel(app.connected ? '局域网已连接' : '正在恢复连接'),
             BadgeLabel('座位 ${view['occupied']}/${view['capacity']}'),
@@ -635,6 +639,18 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
           Notice(
             '有参与者离线，对局暂停。全员恢复后将自动继续。${app.isHost ? '你可以继续等待，或结束本局返回房间。' : '请等待朋友回来，或由房主结束本局。'}',
             icon: Icons.pause_circle_outline_rounded,
+          ),
+          const SizedBox(height: 14),
+        ],
+        if (blackjack && game != null && !waiting) ...[
+          BlackjackBoard(
+            game: game,
+            playerId: view['you'] as String,
+            turnName: _playerName(game['turnPlayer']),
+            canAct: playable,
+            onAction: (type) => unawaited(
+              app.command('play', {'type': type, 'roundId': view['roundId']}),
+            ),
           ),
           const SizedBox(height: 14),
         ],
@@ -663,7 +679,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
           ),
           const SizedBox(height: 16),
         ],
-        if (game != null && !waiting) ...[
+        if (game != null && !waiting && !blackjack) ...[
           Panel(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -745,9 +761,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
             ),
           ],
           const SizedBox(height: 12),
-          const Text(
-            '测试玩法：每人 5 张牌，轮流出一张，先出完者获胜。\n至少 2 人；离线玩家占座，开局前需等其恢复或由房主移出。',
-            style: TextStyle(color: muted, fontSize: 12, height: 1.7),
+          Text(
+            blackjack
+                ? '21 点：每人先拿两张，与庄家比点数。2–6 人，只计房间积分。\n开局前，所有占座玩家都须在线并准备。'
+                : '测试玩法：每人 5 张牌，轮流出一张，先出完者获胜。\n至少 2 人；离线玩家占座，开局前需等其恢复或由房主移出。',
+            style: const TextStyle(color: muted, fontSize: 12, height: 1.7),
           ),
         ],
         if (app.isHost && active) ...[
@@ -788,7 +806,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     final empty = member == null;
     final online = member?['online'] == true;
     final mine = member?['id'] == view['you'];
-    final count = (game?['handCounts'] as Map?)?[member?['id']];
+    final count = game?['finished'] == true
+        ? null
+        : (game?['handCounts'] as Map?)?[member?['id']];
+    final blackjack = view['gameId'] == blackjackGameId;
+    final outcome = (game?['outcomes'] as Map?)?[member?['id']] as Map?;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
       decoration: BoxDecoration(
@@ -833,6 +855,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
           ),
           if (member?['isHost'] == true)
             const Text('房主', style: TextStyle(color: green, fontSize: 10)),
+          if (blackjack && member != null)
+            Text(
+              '${outcome == null ? '' : '${outcome['label']} · '}${member['points']} 分',
+              style: const TextStyle(color: green, fontSize: 11),
+            ),
           if (app.isHost && !empty && !mine)
             SizedBox(
               height: 30,
@@ -842,7 +869,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                     : () async {
                         if (await _confirm(
                           '移出 ${member['name']}？',
-                          '座位将释放，对方无法自动重连。测试游戏会跳过此玩家；只剩一人则结束本局。',
+                          blackjack
+                              ? '座位将释放。若对方正在参与本局，本局作废、不计分。'
+                              : '座位将释放，对方无法自动重连。测试游戏会跳过此玩家；只剩一人则结束本局。',
                         )) {
                           await app.command('kick', {'playerId': member['id']});
                         }
@@ -944,15 +973,15 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                       child: Text('经典斗地主 · 三人'),
                     ),
                     DropdownMenuItem(
-                      value: 'round_robin_v1',
-                      child: Text('轮流出牌 · 框架测试'),
+                      value: blackjackGameId,
+                      child: Text('21 点 · 2–6 人'),
                     ),
                   ],
                   onChanged: (value) =>
                       setDialogState(() => gameId = value ?? 'doudizhu_v1'),
                 ),
                 const SizedBox(height: 12),
-                if (gameId == 'round_robin_v1')
+                if (gameId == blackjackGameId)
                   DropdownButtonFormField<int>(
                     initialValue: capacity,
                     decoration: const InputDecoration(labelText: '座位数量'),
@@ -967,7 +996,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                 Text(
                   gameId == 'doudizhu_v1'
                       ? '固定三人 · 54 张牌 · 叫抢地主 · 炸弹翻倍'
-                      : '每人 5 张牌，轮流出一张，先出完者获胜。',
+                      : '2–6 人 · 要牌或停牌 · 对庄家 · 仅房间积分',
                   style: TextStyle(fontSize: 12, color: muted),
                 ),
               ],

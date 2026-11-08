@@ -79,7 +79,7 @@ void main() {
     expect(find.textContaining('固定三人'), findsOneWidget);
     await tester.tap(find.text('经典斗地主 · 三人'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('轮流出牌 · 框架测试').last);
+    await tester.tap(find.text('21 点 · 2–6 人').last);
     await tester.pumpAndSettle();
     expect(find.text('6 个座位'), findsOneWidget);
     expect(tester.takeException(), isNull);

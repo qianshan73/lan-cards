@@ -166,6 +166,8 @@ class Room {
         for (final m in players) {
           m.ready = false;
         }
+        // Some games can settle on the initial deal (e.g. dealer blackjack).
+        if (game!.finished) _finish();
       case 'play':
         if (payload['roundId'] != roundId || game == null) {
           throw const RuleError('stale_round', '牌局已更新，请使用当前手牌');

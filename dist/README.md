@@ -1,6 +1,12 @@
 # Android 测试包
 
-## 0.2.0 局域网诊断包（最新本机构建）
+## 0.3.0（最新本机构建）
+
+`lan-cards-0.3.0-arm64.apk`：斗地主与 21 点，包含最新斗地主提示与局域网诊断。21,070,597 字节（约 20.1 MiB）。Android 7.0（API 24）或更新版本、64 位 ARM。APK v2 已验证，与原版使用同一开发测试证书。
+
+版本 0.3.0 / versionCode 3。SHA-256 见 `lan-cards-0.3.0-arm64.apk.sha256`。下载入口为 [GitHub Release v0.3.0](https://github.com/qianshan73/lan-cards/releases/tag/v0.3.0)。未完成手机安装或热点互通验收。
+
+## 0.2.0 局域网诊断包（历史）
 
 `lan-cards-0.2.0-diagnostics-arm64.apk`：2026-10-30 从 `3a8768c` 构建的 arm64 release 包，包含局域网发现诊断与脱敏报告，21,070,597 字节（约 20.1 MiB）。Android 7.0（API 24）或更新版本，64 位 ARM。APK v2 签名已验证，与原 0.2.0 使用相同开发测试证书。
 

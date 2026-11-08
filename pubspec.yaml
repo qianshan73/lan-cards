@@ -1,7 +1,7 @@
 name: lan_cards
 description: 一起出牌：无账号、无广告、只在局域网运行的卡牌游戏框架。
 publish_to: none
-version: 0.2.0+2
+version: 0.3.0+3
 
 environment:
   sdk: '>=3.8.0 <4.0.0'
