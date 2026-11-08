@@ -33,6 +33,9 @@ class _DoudizhuTableState extends State<DoudizhuTable> {
   double _dragAnchor = 0;
   int _lastDragIndex = 0;
   String? _round;
+  Object? _hintContext;
+  List<List<int>>? _hints;
+  int _hintIndex = -1;
   String? _hintMessage;
   AppController get app => widget.app;
   Map<String, dynamic> get view => app.view ?? {};
@@ -40,6 +43,8 @@ class _DoudizhuTableState extends State<DoudizhuTable> {
   List<dynamic> get seats => view['seats'] as List? ?? [null, null, null];
   String? get you => view['you'] as String?;
   String get stage => game?['stage'] as String? ?? 'lobby';
+  List<int>? get _previousCards =>
+      ((game?['lastPlay'] as Map?)?['cards'] as List?)?.cast<int>();
   bool get active => game != null && game!['finished'] != true;
   bool get canAct =>
       app.connected &&
@@ -78,21 +83,44 @@ class _DoudizhuTableState extends State<DoudizhuTable> {
     if (mounted && app.message == null) {
       setState(() {
         _selected.clear();
-        _hintMessage = null;
+        _resetHintCursor();
       });
     }
   }
 
+  void _resetHintCursor() {
+    _hintIndex = -1;
+    _hintMessage = null;
+  }
+
   void hint() {
+    if (!canAct || stage != 'playing') return;
     final hand = List<int>.from(game?['hand'] as List? ?? []);
-    final previous = (game?['lastPlay'] as Map?)?['cards'] as List?;
-    final suggestion = suggestPlay(hand, previous?.cast<int>());
+    final hints = _hints ??= suggestPlays(hand, _previousCards);
     setState(() {
-      _selected
-        ..clear()
-        ..addAll(suggestion);
-      _hintMessage = suggestion.isEmpty ? '没有更大的牌，可以选择不出' : null;
+      _selected.clear();
+      if (hints.isEmpty) {
+        _hintMessage = game?['canPass'] == true
+            ? '没有更大的牌，可以选择不出'
+            : '没有可用提示，请手动选牌';
+        return;
+      }
+      _hintIndex = (_hintIndex + 1) % hints.length;
+      _selected.addAll(hints[_hintIndex]);
+      _hintMessage = null;
     });
+  }
+
+  String? get _selectionFeedback {
+    if (_selected.isEmpty || !canAct) return null;
+    final pattern = classifyPlay(_selected.toList());
+    final count = '${_selected.length} 张';
+    if (pattern == null) return '$count · 未成牌型';
+    final previous = classifyPlay(_previousCards ?? const <int>[]);
+    if (previous != null && !beatsPattern(pattern, previous)) {
+      return '${pattern.name} · 压不过';
+    }
+    return '$count · ${pattern.name}';
   }
 
   @override
@@ -101,10 +129,22 @@ class _DoudizhuTableState extends State<DoudizhuTable> {
     builder: (context, _) {
       final hand = List<int>.from(game?['hand'] as List? ?? []);
       final round = view['roundId'] as String?;
-      if (_round != round) {
+      final hintContext = (
+        round,
+        you,
+        stage,
+        view['phase'],
+        game?['turnPlayer'],
+        app.connected,
+        hand.join(','),
+        _previousCards?.join(','),
+      );
+      if (_hintContext != hintContext) {
+        if (_round != round || _hintIndex >= 0) _selected.clear();
         _round = round;
-        _selected.clear();
-        _hintMessage = null;
+        _hintContext = hintContext;
+        _hints = null;
+        _resetHintCursor();
       }
       _selected.removeWhere((c) => !hand.contains(c));
       final media = MediaQuery.of(context);
@@ -582,7 +622,7 @@ class _DoudizhuTableState extends State<DoudizhuTable> {
         if (!canSelect) return;
         setState(() {
           if (!_selected.add(c)) _selected.remove(c);
-          _hintMessage = null;
+          _resetHintCursor();
         });
       }
 
@@ -604,7 +644,7 @@ class _DoudizhuTableState extends State<DoudizhuTable> {
             }
           }
           _lastDragIndex = current;
-          _hintMessage = null;
+          _resetHintCursor();
         });
       }
 
@@ -712,6 +752,7 @@ class _DoudizhuTableState extends State<DoudizhuTable> {
         ],
       );
     }
+    final feedback = _selectionFeedback;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -719,7 +760,15 @@ class _DoudizhuTableState extends State<DoudizhuTable> {
           _button('不出', () => send('pass'), secondary: true, key: 'ddz-pass'),
           const SizedBox(width: 10),
         ],
-        _button('提示', canAct ? hint : null, secondary: true, key: 'ddz-hint'),
+        SizedBox(
+          width: 136,
+          child: _button(
+            _hintIndex < 0 ? '提示' : '提示 ${_hintIndex + 1}/${_hints!.length}',
+            canAct ? hint : null,
+            secondary: true,
+            key: 'ddz-hint',
+          ),
+        ),
         const SizedBox(width: 10),
         _button(
           '出牌',
@@ -728,6 +777,26 @@ class _DoudizhuTableState extends State<DoudizhuTable> {
               : null,
           key: 'ddz-play',
         ),
+        if (canAct) ...[
+          const SizedBox(width: 10),
+          Flexible(
+            child: SizedBox(
+              width: 104,
+              child: feedback == null
+                  ? null
+                  : Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        feedback,
+                        key: const ValueKey('ddz-selection-feedback'),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: _white, fontSize: 11),
+                      ),
+                    ),
+            ),
+          ),
+        ],
         if (!canAct) ...[
           const SizedBox(width: 10),
           Flexible(

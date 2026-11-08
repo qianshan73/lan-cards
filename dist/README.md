@@ -4,7 +4,7 @@
 
 `lan-cards-0.2.0-diagnostics-arm64.apk`：2026-10-30 从 `3a8768c` 构建的 arm64 release 包，包含局域网发现诊断与脱敏报告，21,070,597 字节（约 20.1 MiB）。Android 7.0（API 24）或更新版本，64 位 ARM。APK v2 签名已验证，与原 0.2.0 使用相同开发测试证书。
 
-版本仍是 0.2.0 / versionCode 2，请用文件名与同目录 `lan-cards-0.2.0-diagnostics-arm64.apk.sha256` 区分两个 0.2.0 包。未在手机上安装验证；真机 Wi-Fi / 热点验收延后。
+版本仍是 0.2.0 / versionCode 2，请用文件名与同目录 `lan-cards-0.2.0-diagnostics-arm64.apk.sha256` 区分两个 0.2.0 包。不含 2026-11-08 的出牌提示打磨。未在手机上安装验证；真机 Wi-Fi / 热点验收延后。
 
 ## 0.2.0 原版（历史，不含诊断）
 

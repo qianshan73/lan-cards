@@ -120,6 +120,87 @@ void main() {
     });
   });
 
+  group('local hint shortlist', () {
+    test(
+      'keeps ordinary replies before bombs and avoids spending trumps first',
+      () {
+        final hand = cards([4, 4, 4, 4, 7, 8, 16, 17]);
+        final original = List<int>.of(hand);
+        final previous = cards([3]);
+        final hints = suggestPlays(hand, previous);
+        expect(hints.first.map(rankOf), [7]);
+        expect(
+          hints.map((play) => classifyPlay(play)!.kind).skip(hints.length - 2),
+          [DdzKind.bomb, DdzKind.rocket],
+        );
+        expect(hints.every((play) => beats(play, previous)), isTrue);
+        expect(suggestPlays(hand.reversed.toList(), previous), hints);
+        expect(hand, original);
+      },
+    );
+
+    test(
+      'only one hint per rank multiset, including a pair as single wings',
+      () {
+        final hand = cards([4, 4, 4, 5, 5, 5, 8, 8, 9, 9]);
+        final previous = cards([3, 3, 3, 4, 4, 4, 6, 7]);
+        final hints = suggestPlays(hand, previous);
+        expect(hints, hasLength(3));
+        expect(
+          hints.map((play) => play.map(rankOf).join(',')).toSet(),
+          hasLength(3),
+        );
+        expect(hints.every((play) => beats(play, previous)), isTrue);
+      },
+    );
+
+    test('many wings do not crowd bombs and rocket out of the shortlist', () {
+      final hand = cards([
+        4,
+        4,
+        4,
+        5,
+        5,
+        5,
+        7,
+        7,
+        7,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+      ]);
+      final previous = cards([3, 3, 3, 4, 4, 4, 6, 6]);
+      final hints = suggestPlays(hand, previous);
+      expect(hints, hasLength(12));
+      expect(
+        hints.every(
+          (play) => play.every(hand.contains) && beats(play, previous),
+        ),
+        isTrue,
+      );
+      expect(classifyPlay(hints[10])?.kind, DdzKind.bomb);
+      expect(classifyPlay(hints.last)?.kind, DdzKind.rocket);
+    });
+
+    test(
+      'finishes immediately when possible and never suggests against rocket',
+      () {
+        final hand = cards([4, 5, 6, 7, 8]);
+        expect(suggestPlays(hand, null).first, sortCards(hand));
+        expect(suggestPlays(hand, cards([16, 17])), isEmpty);
+        expect(suggestPlays([2, 2], null), isEmpty);
+      },
+    );
+  });
+
   group('calling and robbing', () {
     test('deal is 17/17/17 plus 3 unique hidden bottom cards', () {
       final game = rules.create(['a', 'b', 'c'], Random(7));

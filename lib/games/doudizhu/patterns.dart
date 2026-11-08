@@ -203,27 +203,47 @@ Iterable<List<int>> _runs(
   }
 }
 
-Iterable<List<int>> _sameTypeCandidates(
-  List<int> hand,
-  DdzPattern previous,
-) sync* {
-  final groups = _groups(hand);
-  final triples = groups.keys.where((r) => groups[r]!.length >= 3).toList();
-  switch (previous.kind) {
+// Pick a canonical suit assignment for each rank multiset. A pair can be
+// two single wings, but choosing different suits is not a different hint.
+Iterable<List<int>> _singleWings(
+  List<List<int>> pool,
+  int count, [
+  int offset = 0,
+]) sync* {
+  if (count == 0) {
+    yield const <int>[];
+    return;
+  }
+  for (var i = offset; i < pool.length; i++) {
+    final group = pool[i];
+    for (var n = 1; n <= 2 && n <= group.length && n <= count; n++) {
+      for (final tail in _singleWings(pool, count - n, i + 1)) {
+        yield [...group.take(n), ...tail];
+      }
+    }
+  }
+}
+
+Iterable<List<int>> _candidatesFor(
+  Map<int, List<int>> groups,
+  DdzKind kind, [
+  int chainLength = 1,
+]) sync* {
+  switch (kind) {
     case DdzKind.single:
       for (final group in groups.values) {
         yield [group.first];
       }
     case DdzKind.pair:
     case DdzKind.triple:
-      final n = previous.kind == DdzKind.pair ? 2 : 3;
+      final n = kind == DdzKind.pair ? 2 : 3;
       for (final group in groups.values.where((g) => g.length >= n)) {
         yield group.take(n).toList();
       }
     case DdzKind.tripleSingle:
     case DdzKind.triplePair:
-      final wingCount = previous.kind == DdzKind.triplePair ? 2 : 1;
-      for (final rank in triples) {
+      final wingCount = kind == DdzKind.triplePair ? 2 : 1;
+      for (final rank in groups.keys.where((r) => groups[r]!.length >= 3)) {
         for (final wing in groups.entries.where(
           (e) => e.key != rank && e.value.length >= wingCount,
         )) {
@@ -231,28 +251,28 @@ Iterable<List<int>> _sameTypeCandidates(
         }
       }
     case DdzKind.straight:
-      yield* _runs(groups, 1, previous.chainLength);
+      yield* _runs(groups, 1, chainLength);
     case DdzKind.pairRun:
-      yield* _runs(groups, 2, previous.chainLength);
+      yield* _runs(groups, 2, chainLength);
     case DdzKind.tripleRun:
-      yield* _runs(groups, 3, previous.chainLength);
+      yield* _runs(groups, 3, chainLength);
     case DdzKind.airplaneSingle:
     case DdzKind.airplanePair:
-      for (final body in _runs(groups, 3, previous.chainLength)) {
+      for (final body in _runs(groups, 3, chainLength)) {
         final bodyRanks = body.map(rankOf).toSet();
-        if (previous.kind == DdzKind.airplaneSingle) {
-          final pool = sortCards(
-            hand.where((c) => !bodyRanks.contains(rankOf(c))),
-            descending: false,
-          );
-          for (final wings in _choose(pool, previous.chainLength)) {
+        if (kind == DdzKind.airplaneSingle) {
+          final pool = [
+            for (final rank in groups.keys)
+              if (!bodyRanks.contains(rank)) groups[rank]!,
+          ];
+          for (final wings in _singleWings(pool, chainLength)) {
             yield [...body, ...wings];
           }
         } else {
           final pool = groups.keys
               .where((r) => !bodyRanks.contains(r) && groups[r]!.length >= 2)
               .toList();
-          for (final ranks in _choose(pool, previous.chainLength)) {
+          for (final ranks in _choose(pool, chainLength)) {
             yield [...body, for (final rank in ranks) ...groups[rank]!.take(2)];
           }
         }
@@ -260,9 +280,12 @@ Iterable<List<int>> _sameTypeCandidates(
     case DdzKind.fourSingles:
     case DdzKind.fourPairs:
       for (final body in groups.entries.where((e) => e.value.length == 4)) {
-        if (previous.kind == DdzKind.fourSingles) {
-          final pool = hand.where((c) => rankOf(c) != body.key).toList();
-          for (final wings in _choose(pool, 2)) {
+        if (kind == DdzKind.fourSingles) {
+          final pool = [
+            for (final rank in groups.keys)
+              if (rank != body.key) groups[rank]!,
+          ];
+          for (final wings in _singleWings(pool, 2)) {
             yield [...body.value, ...wings];
           }
         } else {
@@ -278,40 +301,122 @@ Iterable<List<int>> _sameTypeCandidates(
         }
       }
     case DdzKind.bomb:
+      yield* groups.values.where((group) => group.length == 4);
     case DdzKind.rocket:
-      break;
+      if (groups.containsKey(16) && groups.containsKey(17)) yield [53, 52];
   }
 }
 
-/// A deterministic legal suggestion, not an auto-player. Never mutates hand.
-List<int> suggestPlay(List<int> hand, List<int>? previousCards) {
-  if (hand.isEmpty) return [];
-  if (previousCards == null || previousCards.isEmpty) {
-    if (classifyPlay(hand) != null) return sortCards(hand);
-    final groups = _groups(hand);
-    for (var length = 12; length >= 5; length--) {
-      for (final run in _runs(groups, 1, length)) {
-        return sortCards(run);
-      }
+Iterable<List<int>> _ordinaryCandidates(
+  Map<int, List<int>> groups,
+  int handLength,
+  DdzPattern? previous,
+) sync* {
+  if (previous != null) {
+    if (previous.kind != DdzKind.bomb && previous.kind != DdzKind.rocket) {
+      yield* _candidatesFor(groups, previous.kind, previous.chainLength);
     }
-    for (var length = 6; length >= 3; length--) {
-      for (final run in _runs(groups, 2, length)) {
-        return sortCards(run);
-      }
+    return;
+  }
+  for (final kind in const [
+    DdzKind.single,
+    DdzKind.pair,
+    DdzKind.triple,
+    DdzKind.tripleSingle,
+    DdzKind.triplePair,
+    DdzKind.fourSingles,
+    DdzKind.fourPairs,
+  ]) {
+    yield* _candidatesFor(groups, kind);
+  }
+  for (final (kind, cardsPerRank, minimum) in const [
+    (DdzKind.straight, 1, 5),
+    (DdzKind.pairRun, 2, 3),
+    (DdzKind.tripleRun, 3, 2),
+    (DdzKind.airplaneSingle, 4, 2),
+    (DdzKind.airplanePair, 5, 2),
+  ]) {
+    for (var n = minimum; n <= 12 && n * cardsPerRank <= handLength; n++) {
+      yield* _candidatesFor(groups, kind, n);
     }
-    return [sortCards(hand, descending: false).first];
   }
-  final previous = classifyPlay(previousCards);
-  if (previous == null || previous.kind == DdzKind.rocket) return [];
-  for (final candidate in _sameTypeCandidates(hand, previous)) {
-    final pattern = classifyPlay(candidate);
-    if (pattern != null && beatsPattern(pattern, previous)) {
-      return sortCards(candidate);
-    }
-  }
-  for (final group in _groups(hand).values.where((g) => g.length == 4)) {
-    final pattern = classifyPlay(group)!;
-    if (beatsPattern(pattern, previous)) return sortCards(group);
-  }
-  return hand.contains(52) && hand.contains(53) ? [53, 52] : [];
 }
+
+/// A bounded, deterministic shortlist for the local hint button. Takes only
+/// the player's hand and public last play; the host still validates commands.
+List<List<int>> suggestPlays(List<int> hand, List<int>? previousCards) {
+  if (hand.isEmpty ||
+      hand.length > 20 ||
+      hand.toSet().length != hand.length ||
+      hand.any((card) => card < 0 || card > 53)) {
+    return [];
+  }
+  final following = previousCards != null && previousCards.isNotEmpty;
+  final previous = classifyPlay(previousCards ?? const <int>[]);
+  if (following && (previous == null || previous.kind == DdzKind.rocket)) {
+    return [];
+  }
+  final groups = _groups(hand);
+  final seen = <String>{};
+  final protectedRanks = {
+    for (final group in groups.entries)
+      if (group.value.length == 4) group.key,
+    if (groups.containsKey(16) && groups.containsKey(17)) ...{16, 17},
+  };
+
+  bool legal(DdzPattern? pattern) =>
+      pattern != null && (previous == null || beatsPattern(pattern, previous));
+  String rankKey(List<int> sorted) => sorted.map(rankOf).join(',');
+
+  // Going out immediately is better than conserving a high card or trump.
+  final finish = legal(classifyPlay(hand)) ? sortCards(hand) : null;
+  if (finish != null) seen.add(rankKey(finish));
+
+  final ordinary =
+      <({List<int> cards, DdzPattern pattern, int cost, int order})>[];
+  for (final candidate in _ordinaryCandidates(groups, hand.length, previous)) {
+    final pattern = classifyPlay(candidate);
+    if (pattern == null || !legal(pattern)) continue;
+    final sorted = sortCards(candidate);
+    if (!seen.add(rankKey(sorted))) continue;
+    ordinary.add((
+      cards: sorted,
+      pattern: pattern,
+      cost: sorted.map(rankOf).toSet().intersection(protectedRanks).length,
+      order: ordinary.length,
+    ));
+  }
+  ordinary.sort((a, b) {
+    final byCost = a.cost.compareTo(b.cost);
+    if (byCost != 0) return byCost;
+    if (!following) {
+      final byLength = b.cards.length.compareTo(a.cards.length);
+      if (byLength != 0) return byLength;
+    }
+    final byRank = a.pattern.mainRank.compareTo(b.pattern.mainRank);
+    return byRank != 0 ? byRank : a.order.compareTo(b.order);
+  });
+
+  // Reserve shortlist slots for bombs and rocket, even when there are many
+  // different legal wings. They stay behind ordinary plays in the cycle.
+  final trumps = <List<int>>[];
+  for (final kind in [DdzKind.bomb, DdzKind.rocket]) {
+    for (final candidate in _candidatesFor(groups, kind)) {
+      if (!legal(classifyPlay(candidate))) continue;
+      final sorted = sortCards(candidate);
+      if (seen.add(rankKey(sorted))) trumps.add(sorted);
+    }
+  }
+  const maxHints = 12;
+  return [
+    ?finish,
+    ...ordinary
+        .take(maxHints - trumps.length - (finish == null ? 0 : 1))
+        .map((entry) => entry.cards),
+    ...trumps,
+  ];
+}
+
+/// First recommendation for callers that do not need the full shortlist.
+List<int> suggestPlay(List<int> hand, List<int>? previousCards) =>
+    suggestPlays(hand, previousCards).firstOrNull ?? [];

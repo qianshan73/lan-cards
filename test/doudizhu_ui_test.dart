@@ -233,6 +233,58 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+    'hints cycle without playing and reset on manual selection or turn change',
+    (tester) async {
+      setSize(tester, const Size(667, 320));
+      final room = makeRoom(started: true);
+      final ids = room.members.map((m) => m.id).toList();
+      final game = DoudizhuState(
+        players: ids,
+        hands: {
+          ids[0]: [4, 3, 2],
+          ids[1]: [5],
+          ids[2]: [6],
+        },
+        bottom: [],
+        turn: 0,
+        stage: DdzStage.playing,
+        landlordId: ids[0],
+      );
+      room.game = game;
+      final table = TableController(room);
+      await tester.pumpWidget(LanCardsApp(controller: table, showIntro: false));
+      await tester.pumpAndSettle();
+      final hint = find.byKey(const ValueKey('ddz-hint'));
+      final position = tester.getCenter(hint);
+      for (final index in [1, 2, 3, 1]) {
+        await tester.tap(hint);
+        await tester.pumpAndSettle();
+        expect(find.text('提示 $index/3'), findsOneWidget);
+        expect(tester.getCenter(hint), position);
+        expect(find.text('1 张 · 单张'), findsOneWidget);
+      }
+      await tester.tap(find.byKey(const ValueKey('hand-card-4')));
+      await tester.pumpAndSettle();
+      expect(find.text('提示'), findsOneWidget);
+      expect(find.text('2 张 · 未成牌型'), findsOneWidget);
+      await tester.tap(hint);
+      await tester.pumpAndSettle();
+      expect(find.text('提示 1/3'), findsOneWidget);
+
+      room.game = game.copy(turn: 1);
+      table.refresh();
+      await tester.pumpAndSettle();
+      expect(find.text('提示'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('ddz-selection-feedback')),
+        findsNothing,
+      );
+      expect(table.serial, 0);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('finished round offers readiness and host can start next deal', (
     tester,
   ) async {
