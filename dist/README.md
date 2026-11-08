@@ -1,6 +1,12 @@
 # Android 测试包
 
-## 0.2.0（当前）
+## 0.2.0 局域网诊断包（最新本机构建）
+
+`lan-cards-0.2.0-diagnostics-arm64.apk`：2026-10-30 从 `3a8768c` 构建的 arm64 release 包，包含局域网发现诊断与脱敏报告，21,070,597 字节（约 20.1 MiB）。Android 7.0（API 24）或更新版本，64 位 ARM。APK v2 签名已验证，与原 0.2.0 使用相同开发测试证书。
+
+版本仍是 0.2.0 / versionCode 2，请用文件名与同目录 `lan-cards-0.2.0-diagnostics-arm64.apk.sha256` 区分两个 0.2.0 包。未在手机上安装验证；真机 Wi-Fi / 热点验收延后。
+
+## 0.2.0 原版（历史，不含诊断）
 
 `lan-cards-0.2.0-arm64.apk`：横屏斗地主优化包，大小约 20.1 MiB。需要 Android 7.0（API 24）或更新版本的 64 位 ARM 设备。
 

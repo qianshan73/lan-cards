@@ -20,7 +20,7 @@ flutter test --reporter expanded
 
 测试中只有系统存储与原生 DNS-SD 用替身；网络集成测试使用真实 Socket。
 
-发现诊断的解释、隐私边界与真机记录方式见 [discovery-diagnostics.md](discovery-diagnostics.md)。自动化诊断通过不等于 NSD / Bonjour / 热点兼容性通过；当前已有安装包不包含新增诊断，检查前先重新构建。
+发现诊断的解释、隐私边界与真机记录方式见 [discovery-diagnostics.md](discovery-diagnostics.md)。自动化诊断通过不等于 NSD / Bonjour / 热点兼容性通过。恢复真机检查时，Android 使用 `dist/lan-cards-0.2.0-diagnostics-arm64.apk`，不要与不含诊断的原版 0.2.0 混用。
 
 ## 真机矩阵（未执行的项目不应标记已通过）
 

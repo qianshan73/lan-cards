@@ -6,7 +6,7 @@
 
 当前是 **0.2.0 横屏斗地主版**：三人叫抢地主、完整出牌校验、提示、炸弹 / 王炸翻倍、春天 / 反春与零和积分。保留 2–6 人「轮流出牌」测试模块。21 点尚未实现。Android / iOS 原生工程已提供，真机网络兼容性仍需按验收矩阵验证。
 
-当前 Android 优化安装包：`dist/lan-cards-0.2.0-arm64.apk`，约 20.1 MiB；Android 7.0+ 的 64 位 ARM 设备可测试。完整自动化测试 93 项通过，见 [验证记录](docs/verification.md)。
+当前 Android 安装包：`dist/lan-cards-0.2.0-diagnostics-arm64.apk`，包含局域网诊断，约 20.1 MiB，适用于 Android 7.0+ 的 64 位 ARM 设备。上次本机回归 116 项通过；真机验收延后，见 [验证记录](docs/verification.md)。
 
 ![横屏牌桌](docs/ddz-playing.png)
 

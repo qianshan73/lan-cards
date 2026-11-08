@@ -1,5 +1,12 @@
 # 本次验证记录
 
+## 本机复测与诊断包 — 2026-10-30（Asia/Shanghai）
+
+- 源码提交 `3a8768c`：`tool/dev.ps1 check` 静态分析无诊断、116 项测试全部通过；32 个 Dart 文件格式检查通过。
+- 首次 Android release 在 `compileFlutterBuildRelease` 遇到 `parent` 为 null 的构建异常。以临时 ASCII 盘符单独运行该 Gradle 任务成功，随后重跑 `tool/dev.ps1 release` 成功；未修改源码，也未确定首次异常的根因。
+- `dist/lan-cards-0.2.0-diagnostics-arm64.apk`：21,070,597 字节，应用 ID `org.lancards.lan_cards`，版本 0.2.0 / versionCode 2，最低 API 24、目标 API 36。APK v2 签名与原版使用同一开发测试证书。包内含 arm64 Flutter 引擎及 AOT 代码；在 AOT 中检查到诊断报告标记，原版无此标记。SHA-256 见同目录校验文件。
+- 未在手机或模拟器上安装运行，未验证原生发现、Wi-Fi / 热点互通或 iOS 构建。2026-11-08 按用户要求延后测试，仅补记上述已完成的结果。
+
 ## 局域网发现诊断 — 2026-10-30（Asia/Shanghai，源码修改）
 
 ### 已实现
@@ -22,7 +29,7 @@
 ### 仍未执行 / 不作结论
 
 - 未连接真机；没有验证 Android NSD / iOS Bonjour、原生解析、实际权限弹窗 / 设置转换、普通 Wi-Fi、无互联网 Wi-Fi、Android / iPhone 热点、组播限制或客户端隔离。测试替身和本机 HTTP 不能证明任何真机组合已兼容。
-- 未在本次修改后构建 Android APK、安装或重新生成预览；`dist/lan-cards-0.2.0-arm64.apk` 及下面的构建 / 签名 / 大小记录仍属于 2026-10-28 的旧产物，不含诊断功能。
+- 诊断源码提交时未重新构建 APK；后续诊断包构建见上方。`dist/lan-cards-0.2.0-arm64.apk` 及旧预览仍属于 2026-10-28 的产物，不含诊断功能。
 - Windows 环境未执行 iOS 编译、签名或安装；未触发远程 CI。
 - 按 `testing.md` 网络矩阵收集设备 / 系统 / 构建版本、网络类型、热点提供者、权限步骤、发现与加入各自结果及脱敏报告，之后再更新兼容性结论。
 
